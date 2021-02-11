@@ -1,0 +1,25 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "JOSESwift",
+        "repositoryURL": "https://github.com/airsidemobile/JOSESwift",
+        "state": {
+          "branch": null,
+          "revision": "6e301dd8652aa7b3bbe4c228153cfea9843ed69e",
+          "version": "2.3.1"
+        }
+      },
+      {
+        "package": "MegicalJwkKeyPackage",
+        "repositoryURL": "git@bitbucket.org:megicaldev/megicaljwkkeypackage.git",
+        "state": {
+          "branch": null,
+          "revision": "73753d78db8dd7ac8ef7b215cb75dd3be0b4cafd",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
