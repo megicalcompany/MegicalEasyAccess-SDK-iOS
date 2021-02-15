@@ -11,12 +11,12 @@
         }
       },
       {
-        "package": "MegicalJwkKeyPackage",
-        "repositoryURL": "git@bitbucket.org:megicaldev/megicaljwkkeypackage.git",
+        "package": "SwiftyBeaver",
+        "repositoryURL": "https://github.com/SwiftyBeaver/SwiftyBeaver.git",
         "state": {
           "branch": null,
-          "revision": "73753d78db8dd7ac8ef7b215cb75dd3be0b4cafd",
-          "version": "1.0.0"
+          "revision": "2c513a2e8fbfbd6495afc4a05941d8e3fdba68e9",
+          "version": "1.9.3"
         }
       }
     ]

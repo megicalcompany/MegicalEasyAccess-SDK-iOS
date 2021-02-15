@@ -46,22 +46,20 @@ public class MegAuthDiscovery: NSObject {
                 return
             }
             
-            var jsonObject: [String: Any]?
-            if (data != nil) {
-                do {
-                    jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]
-                } catch {
-                    completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: error, description: "Could not parse result"))
-                    return
-                }
-            }
-            
-            guard let oidDict: [String: Any] = jsonObject else {
-                completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: nil, description: "Could not parse result"))
+            guard data != nil else {
+                completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: nil, description: "No response data"))
                 return
             }
-
-            let oidConfig = MegOpenIdConfiguration.configuration(dict: oidDict)
+            
+            var jsonObject: [String: Any]
+            do {
+                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
+            } catch {
+                completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: error, description: "Could not parse result"))
+                return
+            }
+            
+            let oidConfig = MegOpenIdConfiguration.configuration(dict: jsonObject)
             completion(oidConfig, nil);
         }
         

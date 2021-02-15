@@ -30,10 +30,10 @@ public class MegOpenIdConfiguration: NSObject {
     @objc
     public class func configuration(dict: [String: Any]) -> MegOpenIdConfiguration {
         let config = MegOpenIdConfiguration()
-        config.issuer = (dict["issuer"] as? String) ?? ""
-        config.authEndpoint = (dict["authorization_endpoint"] as? String) ?? ""
-        config.tokenEndpoint = (dict["token_endpoint"] as? String) ?? ""
-        config.jwksUri = (dict["jwks_uri"] as? String) ?? ""
+        config.issuer = dict["issuer"] as? String ?? ""
+        config.authEndpoint = dict["authorization_endpoint"] as? String ?? ""
+        config.tokenEndpoint = dict["token_endpoint"] as? String ?? ""
+        config.jwksUri = dict["jwks_uri"] as? String ?? ""
         return config
     }
 }
