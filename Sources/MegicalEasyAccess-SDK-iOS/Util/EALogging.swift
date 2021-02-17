@@ -14,6 +14,7 @@ public class EALog: NSObject {
     @objc public class func config() {
         let log = SwiftyBeaver.self
         let console = ConsoleDestination()
+        console.minLevel = .info
         log.addDestination(console)
     }
 }

@@ -15,11 +15,18 @@ public class EAHexUtil: NSObject {
         return String(format: format, value)
     }
     
-    @objc public class func integerFromHex(hex: String) -> Int {
+    @objc public class func uint32FromHex(hex: String) -> Int {
         let scanner = Scanner(string: hex)
         var result: UInt64 = 0
         scanner.scanHexInt64(&result)
-        return Int(result)
+        return Int(Int32(truncatingIfNeeded: result))
+    }
+    
+    @objc public class func uint64FromHex(hex: String) -> UInt64 {
+        let scanner = Scanner(string: hex)
+        var result: UInt64 = 0
+        scanner.scanHexInt64(&result)
+        return result
     }
     
     @objc public class func hexFromData(data: Data) -> String {
@@ -38,7 +45,7 @@ public class EAHexUtil: NSObject {
             let start = hex.index(hex.startIndex, offsetBy: index)
             let end = hex.index(start, offsetBy: 2)
             let hexPart = String(hex[start..<end])
-            let intValue = integerFromHex(hex: hexPart)
+            let intValue = uint32FromHex(hex: hexPart)
             data.append(contentsOf: [UInt8(intValue)])
         }
         return data

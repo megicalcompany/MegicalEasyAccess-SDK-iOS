@@ -13,9 +13,9 @@ public class MegAuthUrlRequest: NSObject {
     @objc
     public class func jsonRequest(method: String,
                                   url: URL,
-                                  body: [String: Any]) throws -> URLRequest {
+                                  body: [String: Any]?) throws -> URLRequest {
         
-        let bodyData = try JSONSerialization.data(withJSONObject: body, options: [])
+        let bodyData: Data? = body != nil ? try JSONSerialization.data(withJSONObject: body!, options: []) : nil
         
         var request: URLRequest = URLRequest(url: url)
         request.httpMethod = method

@@ -12,7 +12,7 @@ import SwiftyBeaver
 public class MegAuthRegistrationFlow: NSObject {
     
     @objc
-    public class func registerClient(withUrl registerClientUrl: URL,
+    public class func registerClient(registerClientUrl: URL,
                                       clientType: String,
                                       appId: String,
                                       authCallback: String,
