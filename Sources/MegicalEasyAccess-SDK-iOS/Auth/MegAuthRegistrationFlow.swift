@@ -17,6 +17,7 @@ public class MegAuthRegistrationFlow: NSObject {
                                       appId: String,
                                       authCallback: String,
                                       jwkPublicKeyData: Data,
+                                      keychainKeyClientId: String,
                                       completion: @escaping ((_ clientId: String?, _ error: Error?) -> Void)) {
         
         SwiftyBeaver.info("Registering client at \(registerClientUrl)")
@@ -82,6 +83,11 @@ public class MegAuthRegistrationFlow: NSObject {
             }
             
             let clientId: String = jsonObject["clientId"] as? String ?? ""
+            if !EAKeychainUtil.keychainStore(string: clientId, key: keychainKeyClientId) {
+                completion(nil, EAErrorUtil.error(domain: "MegAuthRegistrationFlow", code: -1, underlyingError: nil, description: "Failed to save clientId to keychain"))
+                return
+            }
+            
             completion(clientId, nil)
         }
         

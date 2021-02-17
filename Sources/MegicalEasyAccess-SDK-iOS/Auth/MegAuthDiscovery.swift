@@ -13,7 +13,7 @@ public class MegAuthDiscovery: NSObject {
     static let IDP_DISCOVERY_PATH = "/.well-known/openid-configuration"
     
     @objc
-    public class func oidConfiguration(with scheme: String,
+    public class func oidConfiguration(scheme: String,
                                        host: String,
                                        port: String,
                                        completion: @escaping ((_ openIdConfig: MegOpenIdConfiguration?,
