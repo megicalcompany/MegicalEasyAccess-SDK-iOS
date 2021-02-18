@@ -13,21 +13,21 @@ public class MegAuthDiscovery: NSObject {
     static let IDP_DISCOVERY_PATH = "/.well-known/openid-configuration"
     
     @objc
-    public class func oidConfiguration(scheme: String,
-                                       host: String,
-                                       port: String,
+    public class func oidConfiguration(authServerAddress: String,
                                        completion: @escaping ((_ openIdConfig: MegOpenIdConfiguration?,
                                                                _ error: Error?) -> ())) {
-        
-        let discoveryEndpoint = "\(scheme)://\(host):\(port)\(IDP_DISCOVERY_PATH)"
-        print("oidConfiguration discoveryEndpoint: \(discoveryEndpoint)")
-        
-        guard let url = URL(string: discoveryEndpoint) else {
-            completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: nil, description: "Could not form url"))
+        guard var components = URLComponents(string: authServerAddress) else {
+            completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: nil, description: "Bad authServerAddress: \(authServerAddress)"))
+            return
+        }
+        components.path = IDP_DISCOVERY_PATH
+
+        guard let discoveryEndpointUrl = components.url else {
+            completion(nil, EAErrorUtil.error(domain: "MegAuthDiscovery", code: -1, underlyingError: nil, description: "Could not form discovery endpoint url"))
             return
         }
         
-        let request = URLRequest(url: url)
+        let request = URLRequest(url: discoveryEndpointUrl)
         let task: URLSessionDataTask = URLSession.shared.dataTask(with: request) { (data: Data?,
                                                                                     response: URLResponse?,
                                                                                     error: Error?) in

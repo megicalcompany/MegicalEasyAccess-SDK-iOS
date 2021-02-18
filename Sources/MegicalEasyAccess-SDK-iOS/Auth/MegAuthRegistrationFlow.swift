@@ -13,12 +13,12 @@ public class MegAuthRegistrationFlow: NSObject {
     
     @objc
     public class func registerClient(registerClientUrl: URL,
-                                      clientType: String,
-                                      appId: String,
-                                      authCallback: String,
-                                      jwkPublicKeyData: Data,
-                                      keychainKeyClientId: String,
-                                      completion: @escaping ((_ clientId: String?, _ error: Error?) -> Void)) {
+                                     clientType: String,
+                                     appId: String,
+                                     authCallback: String,
+                                     jwkPublicKeyData: Data,
+                                     keychainKeyClientId: String,
+                                     completion: @escaping ((_ clientId: String?, _ error: Error?) -> Void)) {
         
         SwiftyBeaver.info("Registering client at \(registerClientUrl)")
         
@@ -40,7 +40,9 @@ public class MegAuthRegistrationFlow: NSObject {
             "redirectUrls": [authCallback],
             "appId": appId,
             "deviceId": deviceForVendor.uuidString,
-            "clientType": clientType
+            "clientType": clientType,
+            "cardTypes": [ "dvv", "megical" ],
+            "redirect": false
         ] as [String : Any]
         
         var request: URLRequest
