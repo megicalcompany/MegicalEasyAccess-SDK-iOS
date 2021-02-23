@@ -10,8 +10,8 @@ import SwiftyBeaver
 
 @objc
 public class MegAuthLoginSessionObject: NSObject {
-    @objc var loginCode: String = ""
-    @objc var sessionId: String = ""
+    @objc public var loginCode: String = ""
+    @objc public var sessionId: String = ""
 }
 
 @objc
@@ -19,13 +19,14 @@ public class MegAuthFlow: NSObject {
     
     let log = SwiftyBeaver.self
     
-    private var authCallback: String = ""
+    private var authCallbackEA: String = ""
+    private var authCallbackOauth: String = ""
     private var authState: UUID = UUID()
     private var authNonce: UUID = UUID()
     private var authVerifier: String = ""
     private var authCodeChallengeBase64: String = ""
     private var oidConfig: MegOpenIdConfiguration?
-    private var sessionObject: MegAuthLoginSessionObject?
+    @objc public var sessionObject: MegAuthLoginSessionObject?
         
     @objc public class func auth(clientId: String,
                                  authCallback: String,
@@ -71,22 +72,22 @@ public class MegAuthFlow: NSObject {
                                                                                        response: URLResponse?,
                                                                                        error: Error?) in
             guard error == nil else {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Error from auth api"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Error from auth api"))
                 return
             }
             
             guard let httpResponse: HTTPURLResponse = response as? HTTPURLResponse else {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not HTTPURLResponse"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not HTTPURLResponse"))
                 return
             }
             
             if (httpResponse.statusCode != 200) {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 200"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 200"))
                 return
             }
             
             guard data != nil else {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "No response data"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "No response data"))
                 return
             }
             
@@ -94,17 +95,17 @@ public class MegAuthFlow: NSObject {
             do {
                 jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
             } catch {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
                 return
             }
             
             guard let loginCode = jsonObject["loginCode"] as? String else {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse loginCode"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse loginCode"))
                 return
             }
 
             guard let sessionId = jsonObject["sessionId"] as? String else {
-                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse encryptedDataurlSafeBase64"))
+                completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse encryptedDataurlSafeBase64"))
                 return
             }
             
@@ -118,7 +119,8 @@ public class MegAuthFlow: NSObject {
     }
     
     @objc public func authorize(authServerAddress: String,
-                                authCallback: String,
+                                authCallbackEA: String,
+                                authCallbackOauth: String,
                                 keychainKeyClientId: String,
                                 completion: @escaping (_ error: Error?) -> Void) {
         
@@ -127,7 +129,8 @@ public class MegAuthFlow: NSObject {
             return
         }
         
-        self.authCallback = authCallback
+        self.authCallbackEA = authCallbackEA
+        self.authCallbackOauth = authCallbackOauth
         self.authState = UUID()
         self.authNonce = UUID()
         
@@ -166,7 +169,7 @@ public class MegAuthFlow: NSObject {
             completion(nil)
             
             // open easy access
-            guard let eaUrl = URL(string: "com.megical.easyaccess:/auth?loginCode=\(sessionObject!.loginCode)&authCallback=\(authCallback)") else {
+            guard let eaUrl = URL(string: "com.megical.easyaccess:/auth?loginCode=\(sessionObject!.loginCode)&authCallback=\(authCallbackEA)") else {
                 completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Failed to switch to easy access"))
                 return
             }
@@ -188,7 +191,7 @@ public class MegAuthFlow: NSObject {
             
             
             MegAuthFlow.auth(clientId: clientId,
-                             authCallback: authCallback,
+                             authCallback: authCallbackOauth,
                              authEndpoint: self.oidConfig!.authEndpoint,
                              authState: self.authState.uuidString,
                              authNonce: self.authNonce.uuidString,
@@ -199,5 +202,83 @@ public class MegAuthFlow: NSObject {
         MegAuthDiscovery.oidConfiguration(authServerAddress: authServerAddress, completion: oidConfigCompletion)
         
     }
+    
+//    /api/v1/auth/verifyEasyaccess
+    @objc public class func verify(sessionId: String,
+                                   verifyUrl: URL,
+                                   completion: @escaping (_ error: Error?) -> Void) {
+        
+        let bodyDict: [String: Any] = ["sessionId": sessionId,
+                                       "noRedirect": false] as [String : Any]
+        
+        SwiftyBeaver.info("Calling verify at: \(verifyUrl.absoluteString)\nwith body:\(bodyDict)")
+        
+        var urlRequest: URLRequest
+        do {
+            urlRequest = try MegAuthUrlRequest.jsonRequest(method: "POST", url: verifyUrl, body: bodyDict)
+        } catch {
+            completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not form verify request"))
+            return
+        }
+        
+        let task: URLSessionDataTask = URLSession.shared.dataTask(with: urlRequest) { (data: Data?,
+                                                                                       response: URLResponse?,
+                                                                                       error: Error?) in
+            guard error == nil else {
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Error from auth api"))
+                return
+            }
+            
+            guard let httpResponse: HTTPURLResponse = response as? HTTPURLResponse else {
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not HTTPURLResponse"))
+                return
+            }
+            
+            if (httpResponse.statusCode != 200) {
+                SwiftyBeaver.warning("Response \(httpResponse.statusCode), data: \(data == nil ? "nil" : String(data: data!, encoding: .utf8)!)")
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 204 (\(httpResponse.statusCode))"))
+                return
+            }
+            
+            guard data != nil else {
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "No response data"))
+                return
+            }
+            
+            var jsonObject: [String: Any]
+            do {
+                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
+            } catch {
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
+                return
+            }
+            
+            print("verify json: \(jsonObject)")
+//            ["redirect": https://auth-dev.megical.com/oauth2/auth?client_id=public%3AeasyaccessDev%3Acb71f28c-67d8-44c0-8644-3162d6752406&code_challenge=I0ynJF8EOKThtG0aHy98KZqjJJVhfX0yUBetwvrKxiw&code_challenge_method=S256&login_verifier=bba3a939735e4a4f94cd64317a8315e3&nonce=5E30CA19-E486-4B60-BA33-A5E0264E2A4E&redirect_uri=com.megical.megical%3A%2Fauth-callback&response_type=code&scope=openid&state=B2065E30-8E82-48A3-A0C2-D1E3B0942BDC]
+//            guard let loginCode = jsonObject["loginCode"] as? String else {
+//                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse loginCode"))
+//                return
+//            }
+        }
+        
+        task.resume()
+    }
+    
+    @objc public func verify(loginCode: String,
+                             verifyUrl: URL,
+                            completion: @escaping (_ error: Error?) -> Void) {
 
+        guard let sessionObject = self.sessionObject else {
+            return
+        }
+        guard sessionObject.loginCode == loginCode else {
+            completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "verify with unknown login code"))
+            return
+        }
+        
+        MegAuthFlow.verify(sessionId: sessionObject.sessionId,
+                           verifyUrl: verifyUrl,
+                           completion: completion)
+    }
+    
 }
