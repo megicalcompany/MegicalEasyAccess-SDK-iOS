@@ -21,7 +21,7 @@ public class MegAuthFlow: NSObject {
     
     private var authCallbackEA: String = ""
     private var authCallbackOauth: String = ""
-    private var authState: UUID = UUID()
+    @objc public var authState: UUID = UUID()
     private var authNonce: UUID = UUID()
     private var authVerifier: String = ""
     private var authCodeChallengeBase64: String = ""
@@ -251,14 +251,7 @@ public class MegAuthFlow: NSObject {
             } catch {
                 completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
                 return
-            }
-            
-            print("verify json: \(jsonObject)")
-//            ["redirect": https://auth-dev.megical.com/oauth2/auth?client_id=public%3AeasyaccessDev%3Acb71f28c-67d8-44c0-8644-3162d6752406&code_challenge=I0ynJF8EOKThtG0aHy98KZqjJJVhfX0yUBetwvrKxiw&code_challenge_method=S256&login_verifier=bba3a939735e4a4f94cd64317a8315e3&nonce=5E30CA19-E486-4B60-BA33-A5E0264E2A4E&redirect_uri=com.megical.megical%3A%2Fauth-callback&response_type=code&scope=openid&state=B2065E30-8E82-48A3-A0C2-D1E3B0942BDC]
-//            guard let loginCode = jsonObject["loginCode"] as? String else {
-//                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse loginCode"))
-//                return
-//            }
+            }            
         }
         
         task.resume()
