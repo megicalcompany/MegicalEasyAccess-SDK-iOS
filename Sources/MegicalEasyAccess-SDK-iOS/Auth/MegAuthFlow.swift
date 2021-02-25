@@ -23,9 +23,9 @@ public class MegAuthFlow: NSObject {
     private var authCallbackOauth: String = ""
     @objc public var authState: UUID = UUID()
     private var authNonce: UUID = UUID()
-    private var authVerifier: String = ""
+    @objc public var authVerifier: String = ""
     private var authCodeChallengeBase64: String = ""
-    private var oidConfig: MegOpenIdConfiguration?
+    @objc public var oidConfig: MegOpenIdConfiguration?
     @objc public var sessionObject: MegAuthLoginSessionObject?
         
     @objc public class func auth(clientId: String,
@@ -234,24 +234,15 @@ public class MegAuthFlow: NSObject {
                 return
             }
             
-            if (httpResponse.statusCode != 200) {
+            guard httpResponse.statusCode == 200 || httpResponse.statusCode == 204 else {
                 SwiftyBeaver.warning("Response \(httpResponse.statusCode), data: \(data == nil ? "nil" : String(data: data!, encoding: .utf8)!)")
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 204 (\(httpResponse.statusCode))"))
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 200 or 204 (\(httpResponse.statusCode))"))
                 return
             }
             
-            guard data != nil else {
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "No response data"))
-                return
-            }
+            // Note: read redirect from json result data if using noRedirect
             
-            var jsonObject: [String: Any]
-            do {
-                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
-            } catch {
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
-                return
-            }            
+            completion(nil)
         }
         
         task.resume()
