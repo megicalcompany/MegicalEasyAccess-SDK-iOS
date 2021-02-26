@@ -20,9 +20,9 @@ public class MegAuthFlow: NSObject {
     let log = SwiftyBeaver.self
     
     private var authCallbackEA: String = ""
-    private var authCallbackOauth: String = ""
+    @objc public var authCallbackOauth: String = ""
     @objc public var authState: UUID = UUID()
-    private var authNonce: UUID = UUID()
+    @objc public var authNonce: UUID = UUID()
     @objc public var authVerifier: String = ""
     private var authCodeChallengeBase64: String = ""
     @objc public var oidConfig: MegOpenIdConfiguration?
@@ -93,7 +93,7 @@ public class MegAuthFlow: NSObject {
             
             var jsonObject: [String: Any]
             do {
-                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
+                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any] ?? [:]
             } catch {
                 completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
                 return

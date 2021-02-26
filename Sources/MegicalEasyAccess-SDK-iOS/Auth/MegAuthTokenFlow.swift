@@ -164,4 +164,174 @@ public class MegAuthTokenFlow: NSObject {
         task.resume()
     }
     
+    /**
+        Url request returns:
+        {"keys":[{
+        "use":"sig",
+        "kty":"RSA",
+        "kid":"public:5e491c7f-506a-476b-9624-9c2ac190ce5d",
+        "alg":"RS256",
+        "n":"wDPL *** 8ZxmfU",
+        "e":"AQAB"}]}
+    */
+    @objc public static func getServerJwks(oidConfig: MegOpenIdConfiguration,
+                                           completion: @escaping (_ jwksKeys: [String: Any]?, _ error: Error?) -> Void) {
+        
+        guard let url: URL = URL(string: oidConfig.jwksUri) else {
+            completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Could not form jwksUri"))
+            return
+        }
+        
+        let urlRequest = URLRequest(url: url)
+        let task: URLSessionDataTask = URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
+            guard error == nil else {
+                completion(nil, error)
+                return
+            }
+            
+            guard let httpResponse: HTTPURLResponse = response as? HTTPURLResponse else {
+                completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Response was not HTTPURLResponse"))
+                return
+            }
+            
+            guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+                SwiftyBeaver.warning("Response \(httpResponse.statusCode), data: \(data == nil ? "nil" : String(data: data!, encoding: .utf8)!)")
+                completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Response was not 200 or 201 (\(httpResponse.statusCode))"))
+                return
+            }
+            
+            guard data != nil else {
+                completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "No response data"))
+                return
+            }
+            
+            var jsonObject: [String: Any]
+            do {
+                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any] ?? [:]
+            } catch {
+                completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: error, description: "Could not parse result"))
+                return
+            }
+            
+            completion(jsonObject, nil)
+        }
+        task.resume()
+    }
+    
+    @objc public static func validateIdToken(accessTokenResult: MegAuthAccessTokenResult,
+                                             oidConfig: MegOpenIdConfiguration,
+                                             serverJwksKey: [String: Any],
+                                             keychainKeyClientId: String,
+                                             clientKeyTagPrivate: String,
+                                             clientKeyTagPublic: String,
+                                             authNonce: String) throws {
+        
+        guard let clientId = EAKeychainUtil.keychainReadString(key: keychainKeyClientId) else {
+            throw EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Could not get clientId from keychain")
+        }
+        
+        let jwksKeyData = try JSONSerialization.data(withJSONObject: serverJwksKey)
+        
+        let clientKey = MegAuthJwkKey.init(keychainTagPrivate: clientKeyTagPrivate, keychainTagPublic: clientKeyTagPublic, jwkUseClause: "sig")
+        
+        let idTokenMessageJsonString: String = try clientKey.verifyIdTokenWithJwksKey(idToken: accessTokenResult.idToken, jwksKeyData: jwksKeyData)
+        
+        guard let idTokenMessageJsonData: Data = idTokenMessageJsonString.data(using: .utf8) else {
+            throw EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Faulty id token data")
+        }
+        let idTokenMessageJson: [String: Any] = try JSONSerialization.jsonObject(with: idTokenMessageJsonData) as? [String: Any] ?? [:]
+     
+        try MegAuthIdTokenValidator.validateIdToken(idTokenMessageJson: idTokenMessageJson,
+                                                    discoveryIssuer: oidConfig.issuer,
+                                                    clientId: clientId,
+                                                    authNonce: authNonce)
+        
+    }
+    
+    @objc public static func handleAuthCodeNotificationObject(notificationObject: [String: Any],
+                                                              authFlow: MegAuthFlow,
+                                                              keychainKeyClientId: String,
+                                                              clientKeyTagPrivate: String,
+                                                              clientKeyTagPublic: String,
+                                                              completion: @escaping ((_ handled: Bool, _ tokenResult: MegAuthAccessTokenResult?, _ error: Error?) -> Void)) {
+        
+        guard let authorizationCode: String = notificationObject["code"] as? String,
+              let _: String = notificationObject["scope"] as? String,
+              let state: String = notificationObject["state"] as? String,
+              state == authFlow.authState.uuidString else {
+            completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Invalid auth token data"))
+            return
+        }
+        
+        guard let oidConfig = authFlow.oidConfig else {
+            completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "No oid config in auth flow object"))
+            return
+        }
+        
+        MegAuthTokenFlow.token(oidConfig: oidConfig,
+                               authCode: authorizationCode,
+                               authCallback: authFlow.authCallbackOauth,
+                               authVerifier: authFlow.authVerifier,
+                               keychainKeyClientId: keychainKeyClientId,
+                               clientKeyTagPrivate: clientKeyTagPrivate,
+                               clientKeyTagPublic: clientKeyTagPublic) { (accessTokenResult: MegAuthAccessTokenResult?, error: Error?) in
+            guard error == nil else {
+                let locdesc: String = error!.localizedDescription
+                let userInfo = (error! as NSError).userInfo
+                SwiftyBeaver.error("Failed to get access token.\nError: \(locdesc)\nUser info: \(userInfo)")
+                completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: error, description: "Failed to get access token"))
+                return
+            }
+            
+            guard accessTokenResult != nil else {
+                completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Got nil accessTokenResult"))
+                return
+            }
+            
+            MegAuthTokenFlow.getServerJwks(oidConfig: oidConfig) { (jwksKeys: [String : Any]?,
+                                                                    error: Error?) in
+                guard error == nil else {
+                    let locdesc: String = error!.localizedDescription
+                    let userInfo = (error! as NSError).userInfo
+                    SwiftyBeaver.error("Failed to get server jwks keys.\nError: \(locdesc)\nUser info: \(userInfo)")
+                    completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: error, description: "Failed to get server jwks keys"))
+                    return
+                }
+                
+                guard jwksKeys != nil else {
+                    completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Got nil jwksKeys"))
+                    return
+                }
+                
+                guard let keysArray: [Any] = jwksKeys!["keys"] as? [Any] else {
+                    completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "No jwks keys returned from server"))
+                    return
+                }
+                
+                guard let key: [String: Any] = keysArray[0] as? [String: Any] else {
+                    completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Faulty jwks key returned from server"))
+                    return
+                }
+                
+                do {
+                    try MegAuthTokenFlow.validateIdToken(accessTokenResult: accessTokenResult!,
+                                                         oidConfig: oidConfig,
+                                                         serverJwksKey: key,
+                                                         keychainKeyClientId: keychainKeyClientId,
+                                                         clientKeyTagPrivate: clientKeyTagPrivate,
+                                                         clientKeyTagPublic: clientKeyTagPublic,
+                                                         authNonce: authFlow.authNonce.uuidString)
+                } catch {
+                    let locdesc: String = error.localizedDescription
+                    let userInfo = (error as NSError).userInfo
+                    SwiftyBeaver.error("Id token validation failed.\nError: \(locdesc)\nUser info: \(userInfo)")
+                    completion(false, nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: error, description: "Id token validation failed"))
+                    return
+                }
+                
+                SwiftyBeaver.info("id token validated")
+                completion(true, accessTokenResult, nil)
+            }
+        }
+    }
 }

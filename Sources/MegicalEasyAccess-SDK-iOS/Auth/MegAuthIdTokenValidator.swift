@@ -61,10 +61,10 @@ public class MegAuthIdTokenValidator: NSObject {
             throw EAErrorUtil.error(domain: "MegAuthIdTokenValidator", code: -1, underlyingError: nil, description: "wrong idToken aud doesn't match clientId")
         }
         
-        // 9. current time after exp
+        // 9. current time before exp
         let now: TimeInterval = Date().timeIntervalSince1970
-        let exp: Int = idTokenMessageJson["exp"] as? Int ?? ""
-        guard now >= Double(exp) {
+        let exp: Int = idTokenMessageJson["exp"] as? Int ?? -1
+        guard now < Double(exp) else {
             throw EAErrorUtil.error(domain: "MegAuthIdTokenValidator", code: -1, underlyingError: nil, description: "idToken has expired")
         }
         
