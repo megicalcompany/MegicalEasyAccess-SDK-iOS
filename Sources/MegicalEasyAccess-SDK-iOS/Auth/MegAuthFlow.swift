@@ -36,11 +36,14 @@ public class MegAuthFlow: NSObject {
                                  authCodeChallengeBase64: String,
                                  completion: @escaping ((_ sessionObject: MegAuthLoginSessionObject?,
                                                          _ error: Error?) -> ())) {
-        
+        SwiftyBeaver.debug("MegAuthFlow.auth");
         guard var urlComponents = URLComponents(string: authEndpoint) else {
             completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not form auth url"))
             return
         }
+        
+        SwiftyBeaver.debug("code_challenge: \(authCodeChallengeBase64)");
+        SwiftyBeaver.debug("MegAuthFlow.auth");
         
         urlComponents.queryItems = [
             URLQueryItem(name: "client_id", value: clientId),

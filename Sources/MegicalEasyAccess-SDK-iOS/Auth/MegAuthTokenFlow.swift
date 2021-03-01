@@ -66,6 +66,8 @@ public class MegAuthTokenFlow: NSObject {
                                   clientKeyTagPublic: String,
                                   completion: @escaping (_ accessTokenResult: MegAuthAccessTokenResult?, _ error: Error?) -> Void
     ) {
+        SwiftyBeaver.debug("MegAuthTokenFlow.token")
+        
         guard let clientId = EAKeychainUtil.keychainReadString(key: keychainKeyClientId) else {
             completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Could not get clientId from keychain"))
             return
@@ -86,6 +88,9 @@ public class MegAuthTokenFlow: NSObject {
             completion(nil, EAErrorUtil.error(domain: "MegAuthTokenFlow", code: -1, underlyingError: nil, description: "Could not form clientAssertion"))
             return
         }
+        
+        SwiftyBeaver.debug("authVerifier: \(authVerifier)")
+        SwiftyBeaver.debug("code_verifier: \(authVerifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)")
 
         var postStr = "grant_type=authorization_code"
         postStr.append("&code_verifier=\(authVerifier.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!)")
