@@ -23,6 +23,15 @@ public class EAQRViewController: UIViewController {
     public override func viewDidLoad() {
         let eaQRMessage = EAURL.eaAppPath(loginCode: self.loginCode)
         
+        let cCenter = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
+        let cEdge = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.4)
+        
+        let backgroundLayer = CAGradientLayer()
+        backgroundLayer.frame = self.view.bounds
+        backgroundLayer.colors = [cEdge.cgColor, cCenter.cgColor, cCenter.cgColor, cEdge.cgColor]
+        backgroundLayer.locations = [0, 0.1, 0.9, 1]
+        self.view.layer.addSublayer(backgroundLayer)
+        
         self.qrImageView.image = generateQRCode(eaQRMessage)
         self.view.addSubview(self.qrImageView)
         self.qrImageView.translatesAutoresizingMaskIntoConstraints = false
