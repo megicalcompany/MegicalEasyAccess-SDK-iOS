@@ -172,7 +172,8 @@ public class MegAuthFlow: NSObject {
             completion(nil)
             
             // open easy access
-            guard let eaUrl = URL(string: "com.megical.easyaccess:/auth?loginCode=\(sessionObject!.loginCode)&authCallback=\(authCallbackEA)") else {
+            
+            guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA)) else {
                 completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Failed to switch to easy access"))
                 return
             }
