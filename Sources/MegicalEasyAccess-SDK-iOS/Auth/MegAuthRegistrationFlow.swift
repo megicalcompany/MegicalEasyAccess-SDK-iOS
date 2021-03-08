@@ -11,8 +11,10 @@ import SwiftyBeaver
 @objc
 public class MegAuthRegistrationFlow: NSObject {
     
+    
     @objc
-    public class func registerClient(registerClientUrl: URL,
+    public class func registerClient(authServerAddress: String,
+                                     clientToken: String,
                                      clientType: String,
                                      appId: String,
                                      authCallback: String,
@@ -20,7 +22,12 @@ public class MegAuthRegistrationFlow: NSObject {
                                      keychainKeyClientId: String,
                                      completion: @escaping ((_ clientId: String?, _ error: Error?) -> Void)) {
         
-        SwiftyBeaver.info("Registering client at \(registerClientUrl)")
+        let registerClientAddress = "\(authServerAddress)/api/v1/client"
+        SwiftyBeaver.info("Registering client at \(registerClientAddress)")
+        guard let registerClientUrl = URL(string: registerClientAddress) else {
+            completion(nil, EAErrorUtil.error(domain: "MegAuthRegistrationFlow", code: -1, underlyingError: nil, description: "Error failed to form register client URL"))
+            return
+        }
         
         var jwkPublicKeyDict: [String: Any]
         do {
@@ -38,10 +45,8 @@ public class MegAuthRegistrationFlow: NSObject {
         let bodyDict = [
             "key": jwkPublicKeyDict,
             "redirectUrls": [authCallback],
-            "appId": appId,
+            "clientToken": clientToken,
             "deviceId": deviceForVendor.uuidString,
-            "clientType": clientType,
-            "cardTypes": [ "dvv", "megical" ],
             "redirect": false
         ] as [String : Any]
         

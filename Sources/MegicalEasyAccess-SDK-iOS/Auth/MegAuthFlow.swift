@@ -17,6 +17,8 @@ public class MegAuthLoginSessionObject: NSObject {
 @objc
 public class MegAuthFlow: NSObject {
     
+    @objc public static let ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED = 1
+    
     let log = SwiftyBeaver.self
     
     private var authCallbackEA: String = ""
@@ -27,6 +29,8 @@ public class MegAuthFlow: NSObject {
     private var authCodeChallengeBase64: String = ""
     @objc public var oidConfig: MegOpenIdConfiguration?
     @objc public var sessionObject: MegAuthLoginSessionObject?
+    
+    lazy var qrViewController = EAQRViewController()
         
     @objc public class func auth(clientId: String,
                                  authCallback: String,
@@ -125,6 +129,7 @@ public class MegAuthFlow: NSObject {
                                 authCallbackEA: String,
                                 authCallbackOauth: String,
                                 keychainKeyClientId: String,
+                                alwaysShowQRViewOnController: UIViewController?,
                                 completion: @escaping (_ error: Error?) -> Void) {
         
         guard let clientId = EAKeychainUtil.keychainReadString(key: keychainKeyClientId) else {
@@ -171,15 +176,29 @@ public class MegAuthFlow: NSObject {
             self.sessionObject = sessionObject
             completion(nil)
             
-            // open easy access
+            if let qrViewParentController = alwaysShowQRViewOnController {
+                DispatchQueue.main.async {
+                    self.qrViewController.authCallback = authCallbackEA
+                    self.qrViewController.loginCode = sessionObject!.loginCode
+                    self.qrViewController.modalPresentationStyle = .overFullScreen
+                    qrViewParentController.present(self.qrViewController, animated: true) {
+                        
+                    }
+                }
+            } else {
+                // open easy access
+                guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA)) else {
+                    completion(EAErrorUtil.error(domain: "MegAuthFlow", code: MegAuthFlow.ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED, underlyingError: nil, description: "Failed to switch to easy access"))
+                    return
+                }
             
-            guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA)) else {
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Failed to switch to easy access"))
-                return
-            }
-            
-            DispatchQueue.main.async {
-                UIApplication.shared.open(eaUrl)
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(eaUrl) { (handled: Bool) in
+                        if (!handled) {
+                            completion(EAErrorUtil.error(domain: "MegAuthFlow", code: MegAuthFlow.ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED, underlyingError: nil, description: "Failed to switch to easy access"))
+                        }
+                    }
+                }
             }
         }
         
