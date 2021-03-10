@@ -12,6 +12,9 @@ import SwiftyBeaver
 public class MegAuthRegistrationFlow: NSObject {
     
     
+    /**
+            clientToken: Token from the app backend we have registered to.
+     */
     @objc
     public class func registerClient(authServerAddress: String,
                                      clientToken: String,
