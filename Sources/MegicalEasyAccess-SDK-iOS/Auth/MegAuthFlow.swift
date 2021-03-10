@@ -177,14 +177,9 @@ public class MegAuthFlow: NSObject {
             completion(nil)
             
             if let qrViewParentController = alwaysShowQRViewOnController {
-                DispatchQueue.main.async {
-                    self.qrViewController.authCallback = authCallbackEA
-                    self.qrViewController.loginCode = sessionObject!.loginCode
-                    self.qrViewController.modalPresentationStyle = .overFullScreen
-                    qrViewParentController.present(self.qrViewController, animated: true) {
-                        
-                    }
-                }
+                self.qrViewController.authCallback = authCallbackEA
+                self.qrViewController.loginCode = sessionObject!.loginCode
+                qrViewParentController.present(self.qrViewController, animated: true, completion: nil)
             } else {
                 // open easy access
                 guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA)) else {

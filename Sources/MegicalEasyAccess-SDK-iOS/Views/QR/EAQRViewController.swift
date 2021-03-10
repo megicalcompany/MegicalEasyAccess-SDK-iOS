@@ -15,9 +15,12 @@ public class EAQRViewController: UIViewController {
     @objc public var loginCode: String = ""
     @objc public var authCallback: String = ""
     @objc public var onError: ((_ error: Error) -> Void)?
+    @objc public var onCloseTouchedHandler: (() -> Void)?
     
+    let backgroundLayer = CAGradientLayer()
     lazy var qrImageView = UIImageView()
     let bLoginCode = UIButton(type: .custom)
+    let bClose = UIButton(type: .close)
     
     public override func viewDidLoad() {
         let eaQRMessage = EAURL.eaAppPath(loginCode: self.loginCode)
@@ -25,10 +28,9 @@ public class EAQRViewController: UIViewController {
         let cCenter = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
         let cEdge = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.4)
         
-        let backgroundLayer = CAGradientLayer()
-        backgroundLayer.frame = self.view.bounds
-        backgroundLayer.colors = [cEdge.cgColor, cCenter.cgColor, cCenter.cgColor, cEdge.cgColor]
-        backgroundLayer.locations = [0, 0.1, 0.9, 1]
+        self.backgroundLayer.frame = self.view.bounds
+        self.backgroundLayer.colors = [cEdge.cgColor, cCenter.cgColor, cCenter.cgColor, cEdge.cgColor]
+        self.backgroundLayer.locations = [0, 0.1, 0.9, 1]
         self.view.layer.addSublayer(backgroundLayer)
         
         self.qrImageView.image = generateQRCode(eaQRMessage)
@@ -48,10 +50,24 @@ public class EAQRViewController: UIViewController {
         self.bLoginCode.translatesAutoresizingMaskIntoConstraints = false
         self.bLoginCode.topAnchor.constraint(equalTo: self.qrImageView.bottomAnchor, constant: 30).isActive = true
         self.bLoginCode.centerXAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.centerXAnchor).isActive = true
+        
+        self.view.addSubview(self.bClose)
+        self.bClose.addTarget(self, action: #selector(self.onCloseButtonPressed(sender:)), for: .touchUpInside)
+        self.bClose.translatesAutoresizingMaskIntoConstraints = false
+        self.bClose.bottomAnchor.constraint(equalTo: self.qrImageView.topAnchor, constant: -40).isActive = true
+        self.bClose.rightAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.rightAnchor, constant: -self.view.safeAreaLayoutGuide.layoutFrame.width * 0.2).isActive = true
     }
     
-    func generateQRCode(_ string: String) -> UIImage? {
+    @objc public func presentOnController(parentVC: UIViewController, completion: (() -> Void)?) {
+        DispatchQueue.main.async {
+            self.modalPresentationStyle = .overFullScreen
+            self.modalTransitionStyle = .crossDissolve
+            parentVC.present(self, animated: true, completion: completion)
+        }
+    }
 
+    func generateQRCode(_ string: String) -> UIImage? {
+        
         guard
             let qrFilter = CIFilter(name: "CIQRCodeGenerator"),
             let data = string.data(using: .isoLatin1, allowLossyConversion: false) else {
@@ -78,6 +94,14 @@ public class EAQRViewController: UIViewController {
         
         DispatchQueue.main.async {
             UIApplication.shared.open(eaUrl)
+        }
+    }
+    
+    @objc func onCloseButtonPressed(sender: UIButton) {
+        if self.onCloseTouchedHandler != nil {
+            self.onCloseTouchedHandler!()
+        } else {
+            self.dismiss(animated: true)
         }
     }
 }
