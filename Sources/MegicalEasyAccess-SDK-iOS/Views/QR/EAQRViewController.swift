@@ -16,7 +16,6 @@ public class EAQRViewController: UIViewController {
     @objc public var authCallback: String = ""
     @objc public var onError: ((_ error: Error) -> Void)?
     
-    lazy var filter = CIFilter(name: "CIQRCodeGenerator")
     lazy var qrImageView = UIImageView()
     let bLoginCode = UIButton(type: .custom)
     
@@ -33,6 +32,7 @@ public class EAQRViewController: UIViewController {
         self.view.layer.addSublayer(backgroundLayer)
         
         self.qrImageView.image = generateQRCode(eaQRMessage)
+        self.qrImageView.contentMode = .scaleToFill
         self.view.addSubview(self.qrImageView)
         self.qrImageView.translatesAutoresizingMaskIntoConstraints = false
         self.qrImageView.widthAnchor.constraint(equalToConstant: 200.0).isActive = true
@@ -51,18 +51,22 @@ public class EAQRViewController: UIViewController {
     }
     
     func generateQRCode(_ string: String) -> UIImage? {
-        guard let filter = filter,
-          let data = string.data(using: .isoLatin1, allowLossyConversion: false) else {
-          return nil
+
+        guard
+            let qrFilter = CIFilter(name: "CIQRCodeGenerator"),
+            let data = string.data(using: .isoLatin1, allowLossyConversion: false) else {
+            return nil
+        }
+        qrFilter.setValue(data, forKey: "inputMessage")
+        qrFilter.setValue("M", forKey: "inputCorrectionLevel")
+
+        let scaleTransform = CGAffineTransform(scaleX: 12, y: 12)
+        guard let ciImage = qrFilter.outputImage?.transformed(by: scaleTransform) else {
+            return nil
         }
 
-        filter.setValue(data, forKey: "inputMessage")
-
-        guard let ciImage = filter.outputImage else {
-          return nil
-        }
-
-        return UIImage(ciImage: ciImage, scale: 2.0, orientation: .up)
+        let img = UIImage(ciImage: ciImage, scale: 1.0, orientation: .up)
+        return img
     }
     
     @objc func onLoginButtonPressed(sender: UIButton) {
