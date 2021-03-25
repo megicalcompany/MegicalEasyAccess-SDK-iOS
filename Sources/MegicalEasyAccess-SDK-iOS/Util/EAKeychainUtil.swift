@@ -11,7 +11,7 @@ import SimpleKeychain
 @objc
 public class EAKeychainUtil: NSObject {
     
-    @objc class func keychainStore(string: String, key: String) -> Bool {
+    @objc public class func keychainStore(string: String, key: String) -> Bool {
         let keychain = A0SimpleKeychain.init()
         keychain.useAccessControl = false
         keychain.defaultAccessiblity = A0SimpleKeychainItemAccessible.whenPasscodeSetThisDeviceOnly
@@ -19,7 +19,7 @@ public class EAKeychainUtil: NSObject {
         return keychain.setString(string, forKey: key)
     }
     
-    @objc class func keychainReadString(key: String) -> String? {
+    @objc public class func keychainReadString(key: String) -> String? {
         let keychain = A0SimpleKeychain.init()
         return keychain.string(forKey: key)
     }

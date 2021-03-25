@@ -17,16 +17,20 @@ public class MegAuthLoginSessionObject: NSObject {
 @objc
 public class MegAuthFlow: NSObject {
     
+    @objc public static let ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED = 1
+    
     let log = SwiftyBeaver.self
     
     private var authCallbackEA: String = ""
-    private var authCallbackOauth: String = ""
-    private var authState: UUID = UUID()
-    private var authNonce: UUID = UUID()
-    private var authVerifier: String = ""
+    @objc public var authCallbackOauth: String = ""
+    @objc public var authState: UUID = UUID()
+    @objc public var authNonce: UUID = UUID()
+    @objc public var authVerifier: String = ""
     private var authCodeChallengeBase64: String = ""
-    private var oidConfig: MegOpenIdConfiguration?
+    @objc public var oidConfig: MegOpenIdConfiguration?
     @objc public var sessionObject: MegAuthLoginSessionObject?
+    
+    lazy var qrViewController = EAQRViewController()
         
     @objc public class func auth(clientId: String,
                                  authCallback: String,
@@ -36,11 +40,14 @@ public class MegAuthFlow: NSObject {
                                  authCodeChallengeBase64: String,
                                  completion: @escaping ((_ sessionObject: MegAuthLoginSessionObject?,
                                                          _ error: Error?) -> ())) {
-        
+        SwiftyBeaver.debug("MegAuthFlow.auth");
         guard var urlComponents = URLComponents(string: authEndpoint) else {
             completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not form auth url"))
             return
         }
+        
+        SwiftyBeaver.debug("code_challenge: \(authCodeChallengeBase64)");
+        SwiftyBeaver.debug("MegAuthFlow.auth");
         
         urlComponents.queryItems = [
             URLQueryItem(name: "client_id", value: clientId),
@@ -93,7 +100,7 @@ public class MegAuthFlow: NSObject {
             
             var jsonObject: [String: Any]
             do {
-                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
+                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any] ?? [:]
             } catch {
                 completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
                 return
@@ -122,6 +129,7 @@ public class MegAuthFlow: NSObject {
                                 authCallbackEA: String,
                                 authCallbackOauth: String,
                                 keychainKeyClientId: String,
+                                alwaysShowQRViewOnController: UIViewController?,
                                 completion: @escaping (_ error: Error?) -> Void) {
         
         guard let clientId = EAKeychainUtil.keychainReadString(key: keychainKeyClientId) else {
@@ -168,14 +176,24 @@ public class MegAuthFlow: NSObject {
             self.sessionObject = sessionObject
             completion(nil)
             
-            // open easy access
-            guard let eaUrl = URL(string: "com.megical.easyaccess:/auth?loginCode=\(sessionObject!.loginCode)&authCallback=\(authCallbackEA)") else {
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Failed to switch to easy access"))
-                return
-            }
+            if let qrViewParentController = alwaysShowQRViewOnController {
+                self.qrViewController.authCallback = authCallbackEA
+                self.qrViewController.loginCode = sessionObject!.loginCode
+                qrViewParentController.present(self.qrViewController, animated: true, completion: nil)
+            } else {
+                // open easy access
+                guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA)) else {
+                    completion(EAErrorUtil.error(domain: "MegAuthFlow", code: MegAuthFlow.ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED, underlyingError: nil, description: "Failed to switch to easy access"))
+                    return
+                }
             
-            DispatchQueue.main.async {
-                UIApplication.shared.open(eaUrl)
+                DispatchQueue.main.async {
+                    UIApplication.shared.open(eaUrl) { (handled: Bool) in
+                        if (!handled) {
+                            completion(EAErrorUtil.error(domain: "MegAuthFlow", code: MegAuthFlow.ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED, underlyingError: nil, description: "Failed to switch to easy access"))
+                        }
+                    }
+                }
             }
         }
         
@@ -234,31 +252,15 @@ public class MegAuthFlow: NSObject {
                 return
             }
             
-            if (httpResponse.statusCode != 200) {
+            guard httpResponse.statusCode == 200 || httpResponse.statusCode == 204 else {
                 SwiftyBeaver.warning("Response \(httpResponse.statusCode), data: \(data == nil ? "nil" : String(data: data!, encoding: .utf8)!)")
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 204 (\(httpResponse.statusCode))"))
+                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Response was not 200 or 204 (\(httpResponse.statusCode))"))
                 return
             }
             
-            guard data != nil else {
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "No response data"))
-                return
-            }
+            // Note: read redirect from json result data if using noRedirect
             
-            var jsonObject: [String: Any]
-            do {
-                jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any]  ?? [:]
-            } catch {
-                completion(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
-                return
-            }
-            
-            print("verify json: \(jsonObject)")
-//            ["redirect": https://auth-dev.megical.com/oauth2/auth?client_id=public%3AeasyaccessDev%3Acb71f28c-67d8-44c0-8644-3162d6752406&code_challenge=I0ynJF8EOKThtG0aHy98KZqjJJVhfX0yUBetwvrKxiw&code_challenge_method=S256&login_verifier=bba3a939735e4a4f94cd64317a8315e3&nonce=5E30CA19-E486-4B60-BA33-A5E0264E2A4E&redirect_uri=com.megical.megical%3A%2Fauth-callback&response_type=code&scope=openid&state=B2065E30-8E82-48A3-A0C2-D1E3B0942BDC]
-//            guard let loginCode = jsonObject["loginCode"] as? String else {
-//                completion(nil,EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not parse loginCode"))
-//                return
-//            }
+            completion(nil)
         }
         
         task.resume()
