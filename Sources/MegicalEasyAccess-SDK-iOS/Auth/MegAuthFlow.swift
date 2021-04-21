@@ -32,12 +32,16 @@ public class MegAuthFlow: NSObject {
     
     lazy var qrViewController = EAQRViewController()
         
+    /**
+        audience: ( e.g. https://megical.com/ ) Can include multiple separated by spaces. URLQueryItem handles url encoding internally.
+     */
     @objc public class func auth(clientId: String,
                                  authCallback: String,
                                  authEndpoint: String,
                                  authState: String,
                                  authNonce: String,
                                  authCodeChallengeBase64: String,
+                                 audience: String,
                                  completion: @escaping ((_ sessionObject: MegAuthLoginSessionObject?,
                                                          _ error: Error?) -> ())) {
         SwiftyBeaver.debug("MegAuthFlow.auth");
@@ -57,9 +61,10 @@ public class MegAuthFlow: NSObject {
             URLQueryItem(name: "state", value: authState),
             URLQueryItem(name: "nonce", value: authNonce),
             URLQueryItem(name: "code_challenge", value: authCodeChallengeBase64),
-            URLQueryItem(name: "code_challenge_method", value: "S256")
+            URLQueryItem(name: "code_challenge_method", value: "S256"),
+            URLQueryItem(name: "audience", value: audience)
         ]
-                
+        
         guard let url = urlComponents.url else {
             completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not form auth url"))
             return
@@ -125,9 +130,13 @@ public class MegAuthFlow: NSObject {
         task.resume()
     }
     
+    /**
+        audience: ( e.g. https://megical.com/ ) Can include multiple separated by spaces. URLQueryItem handles url encoding internally.
+     */
     @objc public func authorize(authServerAddress: String,
                                 authCallbackEA: String,
                                 authCallbackOauth: String,
+                                audience: String,
                                 keychainKeyClientId: String,
                                 alwaysShowQRViewOnController: UIViewController?,
                                 completion: @escaping (_ error: Error?) -> Void) {
@@ -214,6 +223,7 @@ public class MegAuthFlow: NSObject {
                              authState: self.authState.uuidString,
                              authNonce: self.authNonce.uuidString,
                              authCodeChallengeBase64: self.authCodeChallengeBase64,
+                             audience: audience,
                              completion: authCompletion)
         }
         
