@@ -13,6 +13,7 @@ public class EAQRViewController: UIViewController {
     let log = SwiftyBeaver.self
     
     @objc public var loginCode: String = ""
+    @objc public var authEnv: String?
     @objc public var authCallback: String = ""
     @objc public var onError: ((_ error: Error) -> Void)?
     @objc public var onCloseTouchedHandler: (() -> Void)?
@@ -23,7 +24,7 @@ public class EAQRViewController: UIViewController {
     let bClose = UIButton(type: .close)
     
     public override func viewDidLoad() {
-        let eaQRMessage = EAURL.eaAppPath(loginCode: self.loginCode)
+        let eaQRMessage = EAURL.eaAppPath(loginCode: self.loginCode, authEnv: self.authEnv)
         
         let cCenter = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0)
         let cEdge = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.4)
@@ -86,7 +87,7 @@ public class EAQRViewController: UIViewController {
     }
     
     @objc func onLoginButtonPressed(sender: UIButton) {
-        guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: self.loginCode, authCallback: self.authCallback)) else {
+        guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: self.loginCode, authCallback: self.authCallback, authEnv: self.authEnv)) else {
             log.error("Failed to switch to easy access")
             self.onError?(EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Failed to switch to easy access"))
             return

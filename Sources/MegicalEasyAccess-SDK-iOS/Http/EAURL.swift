@@ -13,13 +13,20 @@ public class EAURL: NSObject {
     public static let eaAppPathParamLoginCode = "loginCode"
     public static let eaAppPathParamAuthCallback = "authCallback"
     
-    @objc public class func eaAppPath(loginCode: String) -> String {
-        return "\(EAURL.eaAppPath)?\(EAURL.eaAppPathParamLoginCode)=\(loginCode)"
+    @objc public class func eaAppPath(loginCode: String, authEnv: String?) -> String {
+        var address = "\(EAURL.eaAppPath)?\(EAURL.eaAppPathParamLoginCode)=\(loginCode)"
+        if let authEnv = authEnv {
+            address += "&authEnv=" + authEnv
+        }
+        return address
     }
     
-    @objc public class func eaAppPath(loginCode: String, authCallback: String) -> String {
-        return "\(EAURL.eaAppPath)?\(EAURL.eaAppPathParamLoginCode)=\(loginCode)&\(eaAppPathParamAuthCallback)=\(authCallback)"
+    @objc public class func eaAppPath(loginCode: String, authCallback: String, authEnv: String?) -> String {
+        var address = "\(EAURL.eaAppPath)?\(EAURL.eaAppPathParamLoginCode)=\(loginCode)&\(eaAppPathParamAuthCallback)=\(authCallback)"
+        if let authEnv = authEnv {
+            address += "&authEnv=" + authEnv
+        }
+        return address
     }
-    
     
 }

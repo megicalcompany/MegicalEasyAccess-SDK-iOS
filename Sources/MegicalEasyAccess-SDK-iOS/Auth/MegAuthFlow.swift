@@ -107,6 +107,7 @@ public class MegAuthFlow: NSObject {
             do {
                 jsonObject = try JSONSerialization.jsonObject(with: data!, options: .mutableContainers) as? [String: Any] ?? [:]
             } catch {
+                SwiftyBeaver.debug("data: \(String(data: data!, encoding: .utf8))")
                 completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: error, description: "Could not parse result"))
                 return
             }
@@ -134,6 +135,7 @@ public class MegAuthFlow: NSObject {
         audience: ( e.g. https://megical.com/ ) Can include multiple separated by spaces. URLQueryItem handles url encoding internally.
      */
     @objc public func authorize(authServerAddress: String,
+                                authEnv: String?,
                                 authCallbackEA: String,
                                 authCallbackOauth: String,
                                 audience: String,
@@ -188,10 +190,11 @@ public class MegAuthFlow: NSObject {
             if let qrViewParentController = alwaysShowQRViewOnController {
                 self.qrViewController.authCallback = authCallbackEA
                 self.qrViewController.loginCode = sessionObject!.loginCode
+                self.qrViewController.authEnv = authEnv
                 qrViewParentController.present(self.qrViewController, animated: true, completion: nil)
             } else {
                 // open easy access
-                guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA)) else {
+                guard let eaUrl = URL(string: EAURL.eaAppPath(loginCode: sessionObject!.loginCode, authCallback: authCallbackEA, authEnv: authEnv)) else {
                     completion(EAErrorUtil.error(domain: "MegAuthFlow", code: MegAuthFlow.ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED, underlyingError: nil, description: "Failed to switch to easy access"))
                     return
                 }

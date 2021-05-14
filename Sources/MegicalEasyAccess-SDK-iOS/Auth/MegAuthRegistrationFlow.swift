@@ -18,8 +18,6 @@ public class MegAuthRegistrationFlow: NSObject {
     @objc
     public class func registerClient(authServerAddress: String,
                                      clientToken: String,
-                                     clientType: String,
-                                     appId: String,
                                      authCallback: String,
                                      jwkPublicKeyData: Data,
                                      keychainKeyClientId: String,
