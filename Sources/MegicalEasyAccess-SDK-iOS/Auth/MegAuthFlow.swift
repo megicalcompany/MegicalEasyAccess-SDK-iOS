@@ -132,6 +132,7 @@ public class MegAuthFlow: NSObject {
     }
     
     /**
+        authEnv: "dev" uses development authentication environment. Everything else including nil uses production.
         audience: ( e.g. https://megical.com/ ) Can include multiple separated by spaces. URLQueryItem handles url encoding internally.
      */
     @objc public func authorize(authServerAddress: String,
