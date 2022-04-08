@@ -16,7 +16,6 @@ public class MegAuthLoginSessionObject: NSObject {
 
 @objc
 public class MegAuthFlow: NSObject {
-    
     @objc public static let ERROR_CODE_EASY_ACCESS_APP_LAUNCH_FAILED = 1
     
     let log = SwiftyBeaver.self
@@ -44,14 +43,13 @@ public class MegAuthFlow: NSObject {
                                  audience: String,
                                  completion: @escaping ((_ sessionObject: MegAuthLoginSessionObject?,
                                                          _ error: Error?) -> ())) {
-        SwiftyBeaver.debug("MegAuthFlow.auth");
+        SwiftyBeaver.debug("MegAuthFlow.auth")
         guard var urlComponents = URLComponents(string: authEndpoint) else {
             completion(nil, EAErrorUtil.error(domain: "MegAuthFlow", code: -1, underlyingError: nil, description: "Could not form auth url"))
             return
         }
         
-        SwiftyBeaver.debug("code_challenge: \(authCodeChallengeBase64)");
-        SwiftyBeaver.debug("MegAuthFlow.auth");
+        SwiftyBeaver.debug("code_challenge: \(authCodeChallengeBase64)")
         
         urlComponents.queryItems = [
             URLQueryItem(name: "client_id", value: clientId),
@@ -221,14 +219,14 @@ public class MegAuthFlow: NSObject {
             self.oidConfig = oidConfig
             
             
-            MegAuthFlow.auth(clientId: clientId,
-                             authCallback: authCallbackOauth,
-                             authEndpoint: self.oidConfig!.authEndpoint,
-                             authState: self.authState.uuidString,
-                             authNonce: self.authNonce.uuidString,
-                             authCodeChallengeBase64: self.authCodeChallengeBase64,
-                             audience: audience,
-                             completion: authCompletion)
+            Self.auth(clientId: clientId,
+                      authCallback: authCallbackOauth,
+                      authEndpoint: self.oidConfig!.authEndpoint,
+                      authState: self.authState.uuidString,
+                      authNonce: self.authNonce.uuidString,
+                      authCodeChallengeBase64: self.authCodeChallengeBase64,
+                      audience: audience,
+                      completion: authCompletion)
         }
         
         MegAuthDiscovery.oidConfiguration(authServerAddress: authServerAddress, completion: oidConfigCompletion)
