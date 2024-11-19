@@ -3,7 +3,7 @@
 This is a step by step guide for basic Easy Access usage. More detailed code can be found in the EA Client Example project.
 
 In this example we register to and authenticate against the Easy Access Playground service at 
-https://playground.megical.com/easyaccess/.
+https://playground.hightrust.id/demo/ .
 A real application could have some slight differences.
 
 
@@ -28,7 +28,7 @@ Basic logging is enabled with EALog.config() and can be modified with a custom i
 Register to your backend and get your backend's app token to be used in Easy Access client registration.
 
 In the playground demo we get the app token by going on a browser to
-https://playground.megical.com/easyaccess/
+https://playground.hightrust.id/demo/
 and logging in with Easy Access.
 The needed token is named "Test app client registration token".
 
